@@ -1,0 +1,52 @@
+#!/bin/bash
+
+path="/custom_addons"
+directory_list=""
+exclude_dirs=("docker-server-development"  "Makefile"  "README.md")
+for dir in "$path"/*; do
+
+  if [[ -d "$dir" ]] && [[ ! "${exclude_dirs[@]}" =~ $(basename "$dir") ]]; then
+    relative_dir=$(echo ${dir} | sed 's/\/custom_addons\///')
+    directory_list+="${relative_dir}, "
+  fi
+done
+
+directory_list=$(echo ${directory_list} | sed 's/, $//')
+
+
+install_custom_modules (){
+  echo "${directory_list}" > /app/output.txt
+  python /opt/odoo/odoo-bin -c /static/odoo.conf -i "${directory_list}" &
+}
+
+update_custom_modules (){
+  python /opt/odoo/odoo-bin -c /static/odoo.conf -u "${directory_list}" &
+}
+
+start() {
+  install_custom_modules 
+}
+
+stop() {
+  pkill -9 -f python
+}
+
+case "$1" in 
+    start)
+       start
+       ;;
+    stop)
+       stop
+       ;;
+    restart)
+       stop
+       update_custom_modules
+       ;;
+    status)
+       ;;
+    *)
+       echo "Usage: $0 {start|stop|status|restart}"
+esac
+
+exit 0 
+
